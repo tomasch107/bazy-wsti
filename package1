@@ -1,0 +1,61 @@
+CREATE OR REPLACE PACKAGE traveler_assistance_package AS
+    TYPE country_demographic IS RECORD (
+        country_name       countries.country_name%TYPE,
+        country_location   countries.location%TYPE,
+        population         countries.population%TYPE,
+        airports           countries.airports%TYPE,
+        climate            countries.climate%TYPE
+    );
+   
+    --P1
+    PROCEDURE country_demographics (
+        v_country_name   IN    VARCHAR2,
+        country          OUT   country_demographic
+    );
+
+END;
+
+CREATE OR REPLACE PACKAGE BODY traveler_assistance_package AS
+
+    PROCEDURE country_demographics (
+        v_country_name   IN    VARCHAR2,
+        country          OUT   country_demographic
+    ) IS
+    BEGIN
+        SELECT
+            c.country_name,
+            c.location,
+            c.population,
+            c.airports,
+            c.climate
+        INTO country
+        FROM
+            countries c
+        WHERE
+            lower(country_name) = lower(v_country_name);
+
+    EXCEPTION
+        WHEN no_data_found THEN
+            raise_application_error(-20001, 'No data found for country ' || v_country_name);
+    END;
+
+END;
+
+SET SERVEROUTPUT ON
+
+DECLARE
+    country_name   VARCHAR2(50) := 'Canada';
+    country        traveler_assistance_package.country_demographic;
+BEGIN
+    traveler_assistance_package.country_demographics(country_name, country);
+    dbms_output.put_line(country.country_name
+                         || ',  '
+                         || country.country_location
+                         || ', '
+                         || country.population
+                         || ', '
+                         || country.airports
+                         || ', '
+                         || country.climate);
+
+END;
