@@ -11,6 +11,7 @@ CREATE OR REPLACE PACKAGE traveler_assistance_package AS
         region         regions.region_name%TYPE,
         currency       currencies.currency_name%TYPE
     );
+    TYPE countries_type IS TABLE OF country_type INDEX BY PLS_INTEGER;
     TYPE country_language_type IS RECORD (
         country_name        countries.country_name%TYPE,
         language_name       languages.language_name%TYPE,
@@ -26,6 +27,15 @@ CREATE OR REPLACE PACKAGE traveler_assistance_package AS
     PROCEDURE find_region_and_currency (
         v_country_name   IN    VARCHAR2,
         country          OUT   country_type
+    );
+
+    PROCEDURE countries_in_same_region (
+        v_region_name   IN    VARCHAR2,
+        countries       OUT   countries_type
+    );
+
+    PROCEDURE print_region_array (
+        countries countries_type
     );
 
     PROCEDURE country_languages (
@@ -83,6 +93,49 @@ CREATE OR REPLACE PACKAGE BODY traveler_assistance_package AS
     EXCEPTION
         WHEN no_data_found THEN
             raise_application_error(-20001, 'No data found for country ' || v_country_name);
+    END;
+
+    PROCEDURE countries_in_same_region (
+        v_region_name   IN    VARCHAR2,
+        countries       OUT   countries_type
+    ) IS
+
+        CURSOR countries_region IS
+        SELECT
+            c.country_name,
+            r.region_name,
+            cu.currency_name
+        FROM
+            countries    c,
+            regions      r,
+            currencies   cu
+        WHERE
+            c.region_id = r.region_id
+            AND c.currency_code = cu.currency_code
+            AND lower(r.region_name) = lower(v_region_name);
+
+        i PLS_INTEGER := 1;
+    BEGIN
+        FOR country IN countries_region LOOP
+            countries(i) := country;
+            i := i + 1;
+        END LOOP;
+    EXCEPTION
+        WHEN no_data_found THEN
+            raise_application_error(-20001, 'No data found for country ' || v_region_name);
+    END;
+
+    PROCEDURE print_region_array (
+        countries countries_type
+    ) IS
+    BEGIN
+        FOR i IN countries.first..countries.last LOOP
+            dbms_output.put_line(countries(i).country_name
+                                 || ', '
+                                 || countries(i).region
+                                 || ', '
+                                 || countries(i).currency);
+        END LOOP;
     END;
 
     PROCEDURE country_languages (
@@ -164,6 +217,16 @@ BEGIN
                          || ', '
                          || country.currency);
 
+END;
+--Tests 3,4
+SET SERVEROUTPUT ON
+DECLARE
+    region_name VARCHAR2(50) := 'Eastern Europe';
+    countries TRAVELER_ASSISTANCE_PACKAGE.countries_type;
+BEGIN
+    TRAVELER_ASSISTANCE_PACKAGE.COUNTRIES_IN_SAME_REGION(region_name, countries);
+    DBMS_OUTPUT.PUT_LINE('Countries in the same region are: ');
+    TRAVELER_ASSISTANCE_PACKAGE.PRINT_REGION_ARRAY(countries);
 END;
 
 --Test 5,6 
