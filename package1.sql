@@ -167,7 +167,6 @@ CREATE OR REPLACE PACKAGE BODY traveler_assistance_package AS
         WHEN no_data_found THEN
             raise_application_error(-20001, 'No data found for country ' || v_country_name);
     END;
-    --P6
 
     PROCEDURE print_language_array (
         country_langs country_languages_type
